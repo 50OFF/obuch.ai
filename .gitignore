@@ -1,0 +1,56 @@
+# Node.js
+node_modules/
+
+# Vite
+dist/
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDE & Editor folders
+.vscode/
+.idea/
+
+# Build output (если используется Next.js или другие фреймворки)
+.next/
+out/
+
+# PostgreSQL dumps
+*.sql
+*.sqlite
+
+# т.к. используется Postgres или база данных, добавим ее файлы дампов.
+*.log
+
+# Jest coverage output (если используете тестирование)
+coverage/
+
+# Vercel deployment settings (если используете Vercel)
+.vercel/
+
+# Папка с результатами сборки приложения (например, если есть приложение на Nest.js)
+build/
+
+# TypeScript
+*.tsbuildinfo
+
+# JetBrains IDE settings
+.idea/
+
+# Docker
+docker-compose.override.yml
+Dockerfile*
