@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-
-const color1 = import.meta.env.VITE_COLOR1;
-const color2 = import.meta.env.VITE_COLOR2;
-const color3 = import.meta.env.VITE_COLOR3;
-const color4 = import.meta.env.VITE_COLOR4;
+import supabase from '../services/supabase';
 
 const AuthForm = ({ onAuth }) => {
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -30,34 +25,64 @@ const AuthForm = ({ onAuth }) => {
         }
 
         try {
-            const url = `http://localhost:5000/api/auth/${
-                isLoginMode ? 'login' : 'register'
-            }`;
-            const response = await axios.post(url, { email, password });
+            let response;
+            if (isLoginMode) {
+                response = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+            } else {
+                response = await supabase.auth.signUp({ email, password });
+                const { user, error: authError } = response;
 
-            const { token } = response.data;
-            if (token) {
-                localStorage.setItem('token', token);
+                if (authError) {
+                    throw new Error(authError.message);
+                }
+
+                console.log('Registration response:', response); // Логирование ответа
+
+                // Проверка на наличие пользователя
+                if (!response.data.user) {
+                    throw new Error('Пользователь не создан');
+                }
+
+                // Добавление записи в public.users
+                const { error: insertError } = await supabase
+                    .from('users')
+                    .insert([
+                        {
+                            id: response.data.user.id,
+                            subscription_type: null,
+                            subscription_exp: null,
+                            name: 'Пользователь',
+                            grade: 7,
+                            tone: 'friendly',
+                            hint_level: 'mid',
+                        },
+                    ]);
+
+                if (insertError) {
+                    throw new Error(insertError.message);
+                }
+            }
+
+            if (response.error) {
+                throw new Error(response.error.message);
+            }
+
+            const { user } = response.data;
+            if (user) {
                 onAuth(); // сообщаем App, что пользователь авторизован
             } else {
-                throw new Error('Токен не получен');
+                throw new Error('Пользователь не найден');
             }
         } catch (err) {
-            if (
-                err.response?.data?.message ===
-                'User with this email already exists'
-            ) {
-                setError('Пользователь с таким email уже существует');
-            } else {
-                setError(err.response?.data?.message || 'Ошибка сервера');
-            }
+            setError(err.message || 'Ошибка сервера');
         }
     };
 
     return (
-        <div
-            className="flex justify-center items-center h-screen bg-[var(--color-surface)] text-[var(--color-text)]"
-        >
+        <div className="flex justify-center items-center h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
             <form
                 onSubmit={handleSubmit}
                 className="p-6 rounded-lg shadow-lg w-full max-w-md bg-[var(--color-background)]"
@@ -66,7 +91,11 @@ const AuthForm = ({ onAuth }) => {
                     {isLoginMode ? 'Вход' : 'Регистрация'}
                 </h2>
 
-                {error && <div className="text-[var(--color-error)] mb-4">{error}</div>}
+                {error && (
+                    <div className="text-[var(--color-error)] mb-4">
+                        {error}
+                    </div>
+                )}
 
                 <div className="mb-4">
                     <label htmlFor="email" className="block mb-2">
@@ -91,7 +120,7 @@ const AuthForm = ({ onAuth }) => {
                         id="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="p-2 border border-[var(--color-border)] rounded w-full focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var(--color-text)] bg-[var(--color-surface)] transition-colors"
+                        className="p-2 border border-[var(--color-border)] rounded w-full focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-[var,--color-text)] bg-[var(--color-surface)] transition-colors"
                         required
                     />
                 </div>

@@ -4,20 +4,15 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { API_CONFIG, CHAT_CONFIG, USER_CONFIG, AUTH_CONFIG } from '../config';
 
+import supabase from '../services/supabase';
+
 /**
  * Вспомогательная функция для безопасного получения значения из localStorage
- * Ожидает, что значение хранится в виде строки
- * 
- * @param {string} key - Ключ для получения значения
- * @param {any} defaultValue - Значение по умолчанию
- * @returns {any} - Значение из localStorage или значение по умолчанию
  */
 const getLocalStorageValue = (key, defaultValue = '') => {
     try {
         const value = localStorage.getItem(key);
         if (!value) return defaultValue;
-        
-        // Возвращаем значение как есть, без парсинга JSON
         return value;
     } catch (error) {
         console.error(`Ошибка при чтении ${key} из localStorage:`, error);
@@ -28,81 +23,75 @@ const getLocalStorageValue = (key, defaultValue = '') => {
 /**
  * Хук для управления чатом
  * Предоставляет функции для отправки сообщений, загрузки истории и управления состоянием чата
- * @returns {Object} - Объект с функциями и состоянием чата
  */
 const useChat = () => {
-    // Состояние сообщений и индикатор загрузки
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
     /**
-     * Получает ID пользователя из JWT токена
-     * @returns {string|null} - ID пользователя или null, если токен недействителен
+     * Получает ID пользователя через Supabase
      */
-    const getUserIdFromToken = useCallback(() => {
-        const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                return decoded.userId;
-            } catch (error) {
-                console.error('Ошибка при декодировании токена:', error);
+    const getUserIdFromSupabase = useCallback(async () => {
+        try {
+            const {
+                data: { user },
+                error,
+            } = await supabase.auth.getUser();
+
+            if (error) {
+                console.error(
+                    'Ошибка при получении пользователя из Supabase:',
+                    error
+                );
                 return null;
             }
+
+            return user?.id ?? null;
+        } catch (err) {
+            console.error('Ошибка при получении пользователя:', err);
+            return null;
         }
-        return null;
     }, []);
 
     /**
      * Очищает все сообщения в чате
      */
-    const clearMessages = useCallback(async () => {
+    const clearMessages = useCallback(() => {
         setMessages([]);
     }, []);
 
     /**
-     * Загружает историю сообщений с сервера
+     * Загружает историю сообщений с сервера через Supabase
      */
     const loadMessages = useCallback(async () => {
-        const userId = getUserIdFromToken();
-
+        const userId = await getUserIdFromSupabase();
         if (userId) {
+            setIsLoading(true);
             try {
-                setIsLoading(true);
-                const response = await axios.get(
-                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MESSAGES}/${userId}`
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                setMessages(
+                    data.map((msg) => ({
+                        content: msg.message_content,
+                        role: msg.role,
+                    }))
                 );
-                
-                if (
-                    response.data.message !==
-                    'Нет сообщений для данного пользователя'
-                ) {
-                    const msgs = response.data;
-                    setMessages(
-                        msgs
-                            .sort(
-                                (a, b) =>
-                                    new Date(a.created_at) -
-                                    new Date(b.created_at)
-                            )
-                            .map((msg) => ({
-                                content: msg.message_content,
-                                role: msg.role,
-                            }))
-                    );
-                }
             } catch (error) {
                 console.error('Ошибка при загрузке сообщений:', error);
             } finally {
                 setIsLoading(false);
             }
         }
-    }, [getUserIdFromToken]);
+    }, [getUserIdFromSupabase]);
 
     /**
      * Подсчитывает количество токенов в сообщениях
-     * @param {Array} msgs - Массив сообщений
-     * @returns {Promise<number>} - Количество токенов
      */
     const countTokens = useCallback(async (msgs) => {
         const encoder = await encoding_for_model(CHAT_CONFIG.MODEL);
@@ -114,60 +103,71 @@ const useChat = () => {
 
     /**
      * Обрезает сообщения, чтобы они не превышали максимальное количество токенов
-     * @param {Array} msgs - Массив сообщений
-     * @returns {Promise<Array>} - Обрезанный массив сообщений
      */
-    const trimMessages = useCallback(async (msgs) => {
-        const trimmed = [...msgs];
-        let totalTokens = await countTokens(trimmed);
+    const trimMessages = useCallback(
+        async (msgs) => {
+            const trimmed = [...msgs];
+            let totalTokens = await countTokens(trimmed);
 
-        while (totalTokens > CHAT_CONFIG.MAX_TOKENS) {
-            trimmed.shift();
-            totalTokens = await countTokens(trimmed);
-        }
+            while (totalTokens > CHAT_CONFIG.MAX_TOKENS) {
+                trimmed.shift();
+                totalTokens = await countTokens(trimmed);
+            }
 
-        return trimmed;
-    }, [countTokens]);
+            return trimmed;
+        },
+        [countTokens]
+    );
 
     /**
      * Отправляет сообщение пользователя и получает ответ от бота
-     * @param {string} messageContent - Текст сообщения
      */
     const sendMessage = useCallback(
         async (messageContent) => {
             setIsLoading(true);
             const newMessage = { content: messageContent, role: 'user' };
-            const userId = getUserIdFromToken();
+            const userId = await getUserIdFromSupabase();
 
-            // Используем функциональное обновление состояния
+            // Обновление состояния сообщений
             setMessages((prevMessages) => [...prevMessages, newMessage]);
 
             try {
-                // Сохраняем сообщение пользователя на сервер
-                await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MESSAGES}`, {
-                    userId,
-                    messageContent,
-                    role: 'user',
-                });
+                // Сохраняем сообщение пользователя на сервер через Supabase
+                const { error } = await supabase.from('messages').insert([
+                    {
+                        user_id: userId,
+                        message_content: messageContent,
+                        role: 'user',
+                    },
+                ]);
 
-                // Получаем текущие сообщения через функциональное обновление
-                const updatedMessages = await new Promise((resolve) => {
-                    setMessages((prevMessages) => {
-                        resolve([...prevMessages]);
-                        return prevMessages;
-                    });
-                });
+                if (error) throw error;
+
+                // Получаем текущие сообщения
+                const updatedMessages = [...messages, newMessage];
 
                 // Обрезаем при необходимости
                 const trimmedMessages = await trimMessages(updatedMessages);
 
-                // Получаем значения из localStorage с правильной обработкой
-                const name = getLocalStorageValue(USER_CONFIG.STORAGE_KEYS.NAME, USER_CONFIG.DEFAULT_VALUES.NAME);
-                const grade = getLocalStorageValue(USER_CONFIG.STORAGE_KEYS.GRADE, USER_CONFIG.DEFAULT_VALUES.GRADE);
-                const tone = getLocalStorageValue(USER_CONFIG.STORAGE_KEYS.TONE, USER_CONFIG.DEFAULT_VALUES.TONE);
-                const hintLevel = getLocalStorageValue(USER_CONFIG.STORAGE_KEYS.HINT_LEVEL, USER_CONFIG.DEFAULT_VALUES.HINT_LEVEL);
+                // Получаем значения из localStorage
+                const name = getLocalStorageValue(
+                    USER_CONFIG.STORAGE_KEYS.NAME,
+                    USER_CONFIG.DEFAULT_VALUES.NAME
+                );
+                const grade = getLocalStorageValue(
+                    USER_CONFIG.STORAGE_KEYS.GRADE,
+                    USER_CONFIG.DEFAULT_VALUES.GRADE
+                );
+                const tone = getLocalStorageValue(
+                    USER_CONFIG.STORAGE_KEYS.TONE,
+                    USER_CONFIG.DEFAULT_VALUES.TONE
+                );
+                const hintLevel = getLocalStorageValue(
+                    USER_CONFIG.STORAGE_KEYS.HINT_LEVEL,
+                    USER_CONFIG.DEFAULT_VALUES.HINT_LEVEL
+                );
 
-                // Запрос к серверу
+                // Запрос к серверу (например, к GPT-API или аналогичному)
                 const response = await axios.post(
                     `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`,
                     {
@@ -185,14 +185,16 @@ const useChat = () => {
                     role: 'assistant',
                 };
 
-                // Сохраняем ответ бота на сервер
-                await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MESSAGES}`, {
-                    userId,
-                    messageContent: botMessage.content,
-                    role: 'assistant',
-                });
+                // Сохраняем ответ бота на сервер через Supabase
+                await supabase.from('messages').insert([
+                    {
+                        user_id: userId,
+                        message_content: botMessage.content,
+                        role: 'assistant',
+                    },
+                ]);
 
-                // Добавляем ответ бота в чат используя функциональное обновление
+                // Обновляем сообщения с ответом бота
                 setMessages((prevMessages) => [...prevMessages, botMessage]);
             } catch (error) {
                 console.error('Ошибка при отправке сообщения:', error);
@@ -200,7 +202,7 @@ const useChat = () => {
                 setIsLoading(false);
             }
         },
-        [getUserIdFromToken, trimMessages]
+        [getUserIdFromSupabase, trimMessages, messages]
     );
 
     return {

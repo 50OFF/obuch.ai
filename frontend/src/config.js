@@ -38,8 +38,8 @@ export const USER_CONFIG = {
         HINT_LEVEL: 'hint_level',
     },
     DEFAULT_VALUES: {
-        NAME: '',
-        GRADE: '',
+        NAME: 'Пользователь',
+        GRADE: '7',
         TONE: 'friendly',
         HINT_LEVEL: 'middle',
     },
@@ -55,4 +55,4 @@ export const UI_CONFIG = {
         ACCOUNT_SETTINGS: 'accountSettings',
         CHAT_SETTINGS: 'chatSettings',
     },
-}; 
+};

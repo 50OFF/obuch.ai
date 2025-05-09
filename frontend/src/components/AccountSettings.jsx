@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import supabase from '../services/supabase';
 
 const color1 = import.meta.env.VITE_COLOR1;
 const color2 = import.meta.env.VITE_COLOR2;
@@ -22,35 +23,47 @@ const AccountSettings = ({
     const [name, setName] = useState(userName);
     const [grade, setGrade] = useState(userGrade);
     const [tone, setTone] = useState(userTone || 'friendly');
-    const [hint, setHint] = useState(hintLevel || 'middle');
-
-    const getUserIdFromToken = () => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                return decoded.userId;
-            } catch (error) {
-                console.error('Ошибка при декодировании токена:', error);
-            }
-        }
-        return null;
-    };
-
-    const userId = getUserIdFromToken();
+    const [hint, setHint] = useState(hintLevel || 'mid');
 
     const handleSave = async () => {
-        if (!userId) return;
-
         try {
-            await axios.put(`http://localhost:5000/api/settings/${userId}`, {
+            const {
+                data: { user },
+                error: authError,
+            } = await supabase.auth.getUser();
+
+            if (authError) {
+                console.error('Ошибка при получении пользователя:', authError);
+                return;
+            }
+
+            const userId = user?.id;
+            if (!userId) {
+                console.error('Пользователь не найден');
+                return;
+            }
+
+            const updates = {
                 name: name?.trim() === '' ? null : name,
                 grade: grade === '' || grade === null ? null : Number(grade),
                 tone: tone,
                 hint_level: hint,
-            });
+            };
 
-            // Передаём обновлённые данные обратно в родительский компонент
+            const { error: updateError } = await supabase
+                .from('users')
+                .update(updates)
+                .eq('id', userId);
+
+            if (updateError) {
+                console.error(
+                    'Ошибка при обновлении данных в Supabase:',
+                    updateError
+                );
+                return;
+            }
+
+            // Обновляем локальные данные
             onUpdateName(name);
             onUpdateClass(grade);
             onUpdateTone(tone);
@@ -59,15 +72,13 @@ const AccountSettings = ({
             localStorage.setItem('grade', grade);
             localStorage.setItem('tone', tone);
             localStorage.setItem('hint_level', hint);
-        } catch (error) {
-            console.error('Ошибка при сохранении настроек:', error);
+        } catch (err) {
+            console.error('Ошибка при сохранении настроек:', err);
         }
     };
 
     return (
-        <div
-            className="text-[var(--color-text)] p-4 rounded-2xl shadow-md w-full max-w-xl mx-auto my-6 bg-[var(--color-surface)]"
-        >
+        <div className="text-[var(--color-text)] p-4 rounded-2xl shadow-md w-full max-w-xl mx-auto my-6 bg-[var(--color-surface)]">
             <h2 className="text-xl font-bold mb-4">Настройки аккаунта</h2>
 
             <div className="mb-4">
@@ -89,7 +100,11 @@ const AccountSettings = ({
                 >
                     <option value="">Не выбрано</option>
                     {[...Array(11)].map((_, i) => (
-                        <option key={i + 1} value={i + 1} className="bg-[var(--color-surface)] text-[var(--color-text)]">
+                        <option
+                            key={i + 1}
+                            value={i + 1}
+                            className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                        >
                             {i + 1}
                         </option>
                     ))}
@@ -103,9 +118,24 @@ const AccountSettings = ({
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
                 >
-                    <option value="friendly" className="bg-[var(--color-surface)] text-[var(--color-text)]">Дружелюбный</option>
-                    <option value="strict" className="bg-[var(--color-surface)] text-[var(--color-text)]">Строгий</option>
-                    <option value="neutral" className="bg-[var(--color-surface)] text-[var(--color-text)]">Нейтральный</option>
+                    <option
+                        value="friendly"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Дружелюбный
+                    </option>
+                    <option
+                        value="strict"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Строгий
+                    </option>
+                    <option
+                        value="neutral"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Нейтральный
+                    </option>
                 </select>
             </div>
 
@@ -116,9 +146,24 @@ const AccountSettings = ({
                     value={hint}
                     onChange={(e) => setHint(e.target.value)}
                 >
-                    <option value="high" className="bg-[var(--color-surface)] text-[var(--color-text)]">Давать ответ сразу</option>
-                    <option value="middle" className="bg-[var(--color-surface)] text-[var(--color-text)]">Подсказывать по шагам</option>
-                    <option value="low" className="bg-[var(--color-surface)] text-[var(--color-text)]">Не подсказывать</option>
+                    <option
+                        value="high"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Давать ответ сразу
+                    </option>
+                    <option
+                        value="mid"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Подсказывать по шагам
+                    </option>
+                    <option
+                        value="low"
+                        className="bg-[var(--color-surface)] text-[var(--color-text)]"
+                    >
+                        Не подсказывать
+                    </option>
                 </select>
             </div>
 
