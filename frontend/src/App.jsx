@@ -10,6 +10,8 @@ import AuthForm from './components/AuthForm';
 import AccountSettings from './components/AccountSettings';
 import Sidebar from './components/Sidebar';
 import Modal from './components/Modal';
+import TaskHelp from './components/TaskHelp';
+import Home from './components/Home';
 import { API_CONFIG, USER_CONFIG, UI_CONFIG } from './config';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -18,7 +20,7 @@ const App = () => {
         useChat();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [activeSection, setActiveSection] = useState(UI_CONFIG.SECTIONS.CHAT);
+    const [activeSection, setActiveSection] = useState(UI_CONFIG.SECTIONS.HOME);
     const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
     const [isChatSettingsOpen, setIsChatSettingsOpen] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -147,11 +149,11 @@ const App = () => {
 
             {sidebarVisible && (
                 <button
-                    className="absolute top-4 left-64 z-40 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full p-1 shadow hover:bg-[var(--color-primary-hover)] transition-colors"
+                    className="fixed top-6 left-66 z-40 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full p-1 shadow hover:bg-[var(--color-primary-hover)] transition-colors"
                     onClick={() => setSidebarVisible(false)}
                     title="Скрыть меню"
                 >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={30} />
                 </button>
             )}
 
@@ -187,6 +189,16 @@ const App = () => {
                     sidebarVisible ? 'ml-64' : 'ml-0'
                 }`}
             >
+                {activeSection === UI_CONFIG.SECTIONS.HOME && (
+                    <div className="w-full max-w-3xl mx-auto pb-3 flex flex-col flex-1">
+                        <Home onSectionChange={setActiveSection} />
+                    </div>
+                )}
+                {activeSection === UI_CONFIG.SECTIONS.TASK_HELP && (
+                    <div className="w-full max-w-3xl mx-auto pb-3 flex flex-col flex-1">
+                        <TaskHelp />
+                    </div>
+                )}
                 {activeSection === UI_CONFIG.SECTIONS.CHAT && (
                     <div className="w-full max-w-3xl mx-auto pb-3 flex flex-col h-full">
                         <MessageList

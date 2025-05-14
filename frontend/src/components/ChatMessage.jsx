@@ -8,18 +8,23 @@ import 'katex/dist/katex.min.css';
 
 const ChatMessage = ({ message, isUserMessage }) => {
     const content = typeof message === 'string' ? message : message.content;
-    
+
     // Преобразуем обозначения LaTeX
     const processedContent = content
-        .replace(/\\\(/g, '$')  // Заменяем \( на $
-        .replace(/\\\)/g, '$')  // Заменяем \) на $
+        .replace(/\\neq/g, '≠') // Обрабатываем символ "не равно" для отображения
+        .replace(/\\\(/g, '$') // Заменяем \( на $
+        .replace(/\\\)/g, '$') // Заменяем \) на $
         .replace(/\\\[/g, '$$') // Заменяем \[ на $$
         .replace(/\\\]/g, '$$') // Заменяем \] на $$
         .replace(/\\n/g, '\n');
-    
+
     return (
         <div
-            className={`p-4 rounded-2xl border border-[var(--color-border)] mt-8 ${isUserMessage ? 'bg-[var(--color-surface)] text-right' : 'bg-[var(--color-background)] text-left'} text-[var(--color-text)]`}
+            className={`p-4 rounded-2xl border border-[var(--color-border)] mt-8 ${
+                isUserMessage
+                    ? 'bg-[var(--color-surface)] text-right'
+                    : 'bg-[var(--color-background)] text-left'
+            } text-[var(--color-text)]`}
         >
             <style>
                 {`
@@ -172,18 +177,20 @@ const ChatMessage = ({ message, isUserMessage }) => {
                     remarkPlugins={[remarkGfm, remarkMath]}
                     rehypePlugins={[rehypeHighlight, rehypeKatex]}
                     components={{
-                        pre: ({ node, ...props }) => (
-                            <pre {...props} />
-                        ),
-                        code: ({ node, inline, className, children, ...props }) => {
+                        pre: ({ node, ...props }) => <pre {...props} />,
+                        code: ({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                        }) => {
                             return !inline ? (
                                 <code className={className} {...props}>
                                     {children}
                                 </code>
                             ) : (
-                                <code {...props}>
-                                    {children}
-                                </code>
+                                <code {...props}>{children}</code>
                             );
                         },
                     }}

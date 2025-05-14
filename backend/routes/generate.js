@@ -1,29 +1,34 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const MODEL = "gpt-3.5-turbo";
+const DEFAULT_MODEL = "gpt-3.5-turbo";
 
-// system prompts для разных режимов
+const upload = multer({ dest: "uploads/" });
+
 const SYSTEM_PROMPTS = {
+  task_help: process.env.OPENAI_TASK_HELP_PROMPT,
   chat: process.env.OPENAI_CHAT_PROMPT,
-  plan: process.env.OPENAI_PLAN_PROMPT,
   explain: process.env.OPENAI_EXPLAIN_PROMPT,
 };
 
-router.post("/", async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   const { mode = "chat" } = req.body;
-
   const selectedPrompt = SYSTEM_PROMPTS[mode];
+
   if (!selectedPrompt) {
     return res.status(400).json({ error: "Неизвестный режим работы ИИ" });
   }
 
   let finalMessages;
+  let model = DEFAULT_MODEL;
 
-  if (mode === "chat" || mode === "plan") {
+  if (mode === "chat") {
     const { name, grade, tone, hint_level, messages } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
@@ -42,12 +47,10 @@ router.post("/", async (req, res) => {
       ...messages,
     ];
   } else if (mode === "explain") {
-    const { name, grade, topic, prevExplanation } = req.body;
+    const { name, grade, subject, topic, prevExplanation } = req.body;
 
-    if (!name || !grade || !topic) {
-      return res
-        .status(400)
-        .json({ error: "Отсутствуют name, grade или topic" });
+    if (!name || !grade || !subject || !topic) {
+      return res.status(400).json({ error: "Отсутствуют обязательные поля" });
     }
 
     if (!prevExplanation) {
@@ -60,7 +63,7 @@ router.post("/", async (req, res) => {
         },
         {
           role: "user",
-          content: `Пожалуйста, объясни тему "${topic}".`,
+          content: `Пожалуйста, объясни тему "${topic}" по предмету "${subject}".`,
         },
       ];
     } else {
@@ -74,18 +77,68 @@ router.post("/", async (req, res) => {
         prevExplanation,
         {
           role: "user",
-          content: `Ты обьяснил не очень понятно, давай поподробнее`,
+          content: `Ты объяснил не очень понятно, давай поподробнее.`,
+        },
+      ];
+    }
+  } else if (mode === "task_help") {
+    const { name, grade, text } = req.body;
+    const hasImage = req.file;
+
+    if (!hasImage && !text) {
+      return res
+        .status(400)
+        .json({ error: "Нужно отправить текст или изображение" });
+    }
+
+    const systemMessage = {
+      role: "system",
+      content: selectedPrompt
+        .replace(/{name}/g, name)
+        .replace(/{grade}/g, grade),
+    };
+
+    if (hasImage) {
+      const imagePath = path.join(__dirname, "../", req.file.path);
+      const imageBase64 = fs.readFileSync(imagePath, { encoding: "base64" });
+      fs.unlinkSync(imagePath); // удаляем файл после чтения
+
+      model = "gpt-4o";
+
+      finalMessages = [
+        systemMessage,
+        {
+          role: "user",
+          content: [
+            ...(text ? [{ type: "text", text }] : []),
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+              },
+            },
+          ],
+        },
+      ];
+    } else {
+      // Только текст, используем 3.5
+      finalMessages = [
+        systemMessage,
+        {
+          role: "user",
+          content: text,
         },
       ];
     }
   }
 
   try {
-    const openaiResponse = await axios.post(
+    const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: MODEL,
+        model,
         messages: finalMessages,
+        max_tokens: 1000,
       },
       {
         headers: {
@@ -95,8 +148,8 @@ router.post("/", async (req, res) => {
       }
     );
 
-    const gptMessage = openaiResponse.data.choices[0].message;
-    res.json({ message: gptMessage, req: finalMessages });
+    const gptMessage = response.data.choices[0].message;
+    res.json({ message: gptMessage, model });
   } catch (error) {
     console.error(
       "Ошибка при обращении к OpenAI:",

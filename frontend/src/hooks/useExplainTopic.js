@@ -125,6 +125,7 @@ const useExplainTopic = () => {
                         mode: 'explain',
                         name,
                         grade,
+                        subject,
                         topic,
                     }),
                 }
@@ -180,17 +181,21 @@ const useExplainTopic = () => {
                 USER_CONFIG.DEFAULT_VALUES.GRADE
             );
 
-            const response = await fetch('/api/generate-explanation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mode: 'explain',
-                    name,
-                    grade,
-                    topic: currentTopic.topic,
-                    prevExplanation: explanation,
-                }),
-            });
+            const response = await fetch(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'explain',
+                        name,
+                        grade,
+                        subject: currentTopic.subject,
+                        topic: currentTopic.topic,
+                        prevExplanation: explanation,
+                    }),
+                }
+            );
 
             const result = await response.json();
             const additionalContent = result.message.content;

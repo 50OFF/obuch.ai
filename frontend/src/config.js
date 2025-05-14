@@ -48,6 +48,8 @@ export const USER_CONFIG = {
 // Настройки интерфейса
 export const UI_CONFIG = {
     SECTIONS: {
+        HOME: 'home',
+        TASK_HELP: 'task_help',
         CHAT: 'chat',
         EXPLAIN: 'explain',
     },

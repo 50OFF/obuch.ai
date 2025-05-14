@@ -23,12 +23,6 @@ import SubjectSelector from './ExplainTopic/SubjectSelector';
 import TopicInput from './ExplainTopic/TopicInput';
 import ExplanationView from './ExplainTopic/ExplanationView';
 
-const color1 = import.meta.env.VITE_COLOR1;
-const color2 = import.meta.env.VITE_COLOR2;
-const color3 = import.meta.env.VITE_COLOR3;
-const color4 = import.meta.env.VITE_COLOR4;
-const color5 = import.meta.env.VITE_COLOR5;
-
 // Большой объект с предметами
 const subjects = {
     1: [
