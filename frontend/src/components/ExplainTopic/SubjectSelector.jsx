@@ -30,7 +30,7 @@ const SubjectSelector = ({
                         }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => onSelectSubject(subject)}
-                        className="flex flex-col items-center gap-3 p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] cursor-pointer"
+                        className="flex flex-col items-center gap-3 p-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] cursor-pointer"
                     >
                         <div className="text-4xl mb-2 text-[var(--color-primary)]">
                             {IconComponent && <IconComponent size={40} />}

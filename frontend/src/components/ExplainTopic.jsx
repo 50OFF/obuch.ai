@@ -15,7 +15,6 @@ import {
     History,
 } from 'lucide-react';
 import useExplainTopic from '../hooks/useExplainTopic';
-import ChatMessage from './ChatMessage';
 import Loader from './Loader';
 import TopBar from './ExplainTopic/TopBar';
 import HistoryModal from './ExplainTopic/HistoryModal';

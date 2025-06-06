@@ -24,7 +24,7 @@ const Sidebar = ({
             <div>
                 <h1
                     className="text-5xl mb-6 mt-4 font-[Modak] text-[var(--color-primary)] hover:cursor-pointer"
-                    onClick={() => onSectionChange('home')}
+                    onClick={() => onSectionChange('/home')}
                 >
                     OBUCH.AI
                 </h1>
@@ -38,7 +38,7 @@ const Sidebar = ({
                                     : 'hover:bg-[var(--color-primary-hover)] hover:text-white'
                             }
                             `}
-                        onClick={() => onSectionChange('task_help')}
+                        onClick={() => onSectionChange('/task_help')}
                     >
                         <FaBookOpen />
                         <span>Помощь с заданием</span>
@@ -51,7 +51,7 @@ const Sidebar = ({
                                     : 'hover:bg-[var(--color-primary-hover)] hover:text-white'
                             }
                             `}
-                        onClick={() => onSectionChange('explain')}
+                        onClick={() => onSectionChange('/explain')}
                     >
                         <FaLightbulb />
                         <span>Объяснить тему</span>
@@ -64,7 +64,7 @@ const Sidebar = ({
                                             : 'hover:bg-[var(--color-primary-hover)] hover:text-white'
                                     }
                                 `}
-                        onClick={() => onSectionChange('chat')}
+                        onClick={() => onSectionChange('/chat')}
                     >
                         <FaComments />
                         <span>Чат с репетитором</span>

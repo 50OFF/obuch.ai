@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import ExplanationsList from './ExplanationsList';
+import TaskHelpsList from './TaskHelpsList';
 
 const HistoryModal = ({
     show,
     onClose,
-    explanations,
-    loadExplanation,
-    deleteExplanation,
+    taskHelps,
+    loadTaskHelp,
+    deleteTaskHelp,
 }) => {
     if (!show) return null;
     return ReactDOM.createPortal(
@@ -38,13 +38,13 @@ const HistoryModal = ({
                         </svg>
                     </button>
                     <h3 className="text-xl font-bold mb-4 text-center text-[var(--color-text)]">
-                        История объяснений
+                        История помощи
                     </h3>
-                    <ExplanationsList
-                        explanations={explanations}
-                        loadExplanation={loadExplanation}
+                    <TaskHelpsList
+                        taskHelps={taskHelps}
+                        loadTaskHelp={loadTaskHelp}
                         setShowHistory={onClose}
-                        deleteExplanation={deleteExplanation}
+                        deleteTaskHelp={deleteTaskHelp}
                     />
                 </motion.div>
             </motion.div>

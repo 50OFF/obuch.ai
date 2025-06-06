@@ -82,7 +82,7 @@ router.post("/", upload.single("image"), async (req, res) => {
       ];
     }
   } else if (mode === "task_help") {
-    const { name, grade, text } = req.body;
+    const { name, grade, text, help_mode } = req.body;
     const hasImage = req.file;
 
     if (!hasImage && !text) {
@@ -95,13 +95,14 @@ router.post("/", upload.single("image"), async (req, res) => {
       role: "system",
       content: selectedPrompt
         .replace(/{name}/g, name)
-        .replace(/{grade}/g, grade),
+        .replace(/{grade}/g, grade)
+        .replace(/{mode}/g, help_mode),
     };
 
     if (hasImage) {
       const imagePath = path.join(__dirname, "../", req.file.path);
       const imageBase64 = fs.readFileSync(imagePath, { encoding: "base64" });
-      fs.unlinkSync(imagePath); // удаляем файл после чтения
+      fs.unlinkSync(imagePath);
 
       model = "gpt-4o";
 

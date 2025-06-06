@@ -49,7 +49,7 @@ const Home = ({ onSectionChange }) => {
                             }}
                             whileTap={{ scale: 0.97 }}
                             onClick={() => onSectionChange(section.id)}
-                            className="flex flex-col justify-between p-6 min-h-[200px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] cursor-pointer text-left hover:shadow-md transition-shadow"
+                            className="flex flex-col justify-between p-6 min-h-[200px] rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] cursor-pointer text-left hover:shadow-md transition-shadow"
                         >
                             <div className="text-[var(--color-primary)] mb-4">
                                 {section.icon && <section.icon size={36} />}

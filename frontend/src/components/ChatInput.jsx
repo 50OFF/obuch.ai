@@ -29,7 +29,8 @@ const ChatInput = ({ onSendMessage }) => {
         if (textarea) {
             textarea.style.height = 'auto';
             const maxHeight = MAX_ROWS * ROW_HEIGHT;
-            textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+            textarea.style.height =
+                Math.min(textarea.scrollHeight, maxHeight) + 'px';
         }
     };
 
@@ -69,7 +70,9 @@ const ChatInput = ({ onSendMessage }) => {
                         style={{ opacity: 0.7, cursor: 'not-allowed' }}
                     >
                         <Paperclip size={18} />
-                        <span className="hidden sm:inline">Прикрепить файл</span>
+                        <span className="hidden sm:inline">
+                            Прикрепить файл
+                        </span>
                     </button>
                     <button
                         type="submit"
